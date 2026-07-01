@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14161a">
+<title>Шея · Тренер</title>
+<style>
+  :root{
+    --bg:#14161a;
+    --card:#1c1f26;
+    --card-2:#22262f;
+    --ink:#eef0f2;
+    --muted:#8b90a0;
+    --hold:#ff5a36;      /* ember — напряжение */
+    --hold-dim:#3a2622;
+    --rest:#2fe6b8;      /* teal — отдых */
+    --rest-dim:#1d3833;
+    --flame:#ffb100;     /* стрик */
+    --danger:#ff5a36;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    overscroll-behavior:none; -webkit-user-select:none; user-select:none;
+  }
+  #app{ height:100dvh; height:100vh; width:100%; position:relative; overflow:hidden; }
+  .screen{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    padding:calc(28px + env(safe-area-inset-top)) 24px calc(20px + env(safe-area-inset-bottom)) 24px;
+  }
+  .screen.active{ display:flex; }
+
+  .eyebrow{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  h1{ font-size:28px; margin:2px 0 0; font-weight:800; letter-spacing:-.01em; }
+
+  /* ---------- HOME ---------- */
+  #home-screen{ justify-content:space-between; }
+  .home-top{ display:flex; flex-direction:column; gap:4px; }
+  .streak-row{
+    display:flex; align-items:center; gap:10px; margin-top:18px;
+    background:var(--card); border-radius:18px; padding:16px 18px;
+  }
+  .flame{ font-size:26px; line-height:1; filter:drop-shadow(0 0 6px rgba(255,177,0,.35)); }
+  .streak-num{ font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .streak-label{ color:var(--muted); font-size:14px; margin-top:1px; }
+
+  .plan-card{
+    background:var(--card); border-radius:20px; padding:20px; margin-top:14px;
+  }
+  .plan-title{ color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; }
+  .plan-grid{ display:flex; justify-content:space-between; margin-top:14px; }
+  .plan-cell{ text-align:center; flex:1; }
+  .plan-num{ font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .plan-unit{ color:var(--muted); font-size:12px; margin-top:2px; }
+  .plan-div{ width:1px; background:#2a2e38; margin:4px 6px; }
+
+  .done-banner{
+    margin-top:14px; background:var(--rest-dim); color:var(--rest); border-radius:14px;
+    padding:12px 14px; font-size:14px; font-weight:600; text-align:center;
+  }
+  .hidden{ display:none !important; }
+
+  .home-bottom{ display:flex; flex-direction:column; gap:10px; }
+  button{ font-family:inherit; border:none; -webkit-appearance:none; appearance:none; }
+  .btn-primary{
+    background:var(--hold); color:#1a0e0a; font-size:18px; font-weight:800;
+    padding:18px; border-radius:16px; letter-spacing:-.01em;
+  }
+  .btn-primary:active{ opacity:.85; }
+  .btn-ghost{
+    background:transparent; color:var(--muted); font-size:15px; font-weight:600;
+    padding:10px; text-align:center;
+  }
+
+  /* ---------- SESSION ---------- */
+  #session-screen{ align-items:center; justify-content:space-between; text-align:center; }
+  .sets-dots{ display:flex; gap:6px; margin-top:6px; }
+  .dot{ width:8px; height:8px; border-radius:50%; background:#2a2e38; }
+  .dot.filled{ background:var(--hold); }
+  .session-label{ color:var(--muted); font-size:14px; font-weight:600; margin-top:6px; }
+
+  .ring-wrap{ position:relative; width:min(72vw, 300px); height:min(72vw,300px); margin:auto 0; }
+  .ring-wrap svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring-track{ fill:none; stroke:#22262f; stroke-width:14; }
+  .ring-progress{ fill:none; stroke-width:14; stroke-linecap:round; transition:stroke .25s ease; }
+  .ring-center{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .phase-label{ font-size:14px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; color:var(--muted); }
+  .timer-number{ font-size:clamp(56px,18vw,88px); font-weight:800; font-variant-numeric:tabular-nums; line-height:1; margin-top:2px; }
+
+  .reps-dots{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; max-width:260px; }
+  .reps-dots .dot{ width:11px; height:11px; }
+  .reps-dots .dot.filled{ background:var(--rest); }
+
+  .session-controls{ display:flex; gap:10px; width:100%; }
+  .btn-secondary{
+    flex:1; background:var(--card-2); color:var(--ink); font-size:15px; font-weight:700;
+    padding:15px; border-radius:14px;
+  }
+  .btn-quit{ color:var(--muted); font-size:14px; font-weight:600; padding:12px; margin-top:4px; }
+
+  /* ---------- DONE ---------- */
+  #done-screen{ align-items:center; justify-content:center; text-align:center; gap:0; }
+  .done-emoji{ font-size:48px; }
+  #done-screen h1{ margin-top:10px; }
+  .done-streak{ margin-top:18px; font-size:16px; color:var(--muted); }
+  .done-streak b{ color:var(--flame); font-variant-numeric:tabular-nums; }
+  .done-next{ margin-top:22px; background:var(--card); border-radius:18px; padding:18px; width:100%; max-width:320px; }
+  .done-next .plan-title{ text-align:center; }
+  .done-max{ margin-top:10px; color:var(--flame); font-size:13px; font-weight:700; }
+
+  /* ---------- SETTINGS ---------- */
+  #settings-screen{ overflow-y:auto; }
+  .field{ display:flex; justify-content:space-between; align-items:center; background:var(--card); border-radius:14px; padding:14px 16px; margin-top:10px; }
+  .field label{ font-size:15px; font-weight:600; }
+  .field span.hint{ display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+  .field input{
+    width:64px; text-align:center; background:var(--card-2); border:1px solid #2a2e38; border-radius:10px;
+    color:var(--ink); font-size:16px; font-weight:700; padding:8px 6px; font-variant-numeric:tabular-nums;
+  }
+  .settings-actions{ margin-top:22px; display:flex; flex-direction:column; gap:10px; }
+  .btn-danger{ background:var(--hold-dim); color:var(--hold); font-size:15px; font-weight:700; padding:15px; border-radius:14px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home-screen" class="screen active">
+    <div>
+      <div class="home-top">
+        <div class="eyebrow">Шея · изометрия</div>
+        <h1>Подъёмы головы</h1>
+      </div>
+
+      <div class="streak-row">
+        <div class="flame">🔥</div>
+        <div>
+          <div class="streak-num"><span id="streakCount">0</span></div>
+          <div class="streak-label" id="streakLabel">дней подряд</div>
+        </div>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-title">Сегодняшняя цель</div>
+        <div class="plan-grid">
+          <div class="plan-cell"><div class="plan-num" id="planSets">3</div><div class="plan-unit">подхода</div></div>
+          <div class="plan-div"></div>
+          <div class="plan-cell"><div class="plan-num" id="planReps">5</div><div class="plan-unit">повторов</div></div>
+          <div class="plan-div"></div>
+          <div class="plan-cell"><div class="plan-num" id="planHold">5</div><div class="plan-unit">сек держать</div></div>
+        </div>
+      </div>
+
+      <div id="doneBanner" class="done-banner hidden">Сегодня уже сделано ✅ — можно повторить ещё раз</div>
+    </div>
+
+    <div class="home-bottom">
+      <button class="btn-primary" id="startBtn">Начать</button>
+      <button class="btn-ghost" id="settingsBtnHome">Настройки</button>
+    </div>
+  </section>
+
+  <!-- SESSION -->
+  <section id="session-screen" class="screen">
+    <div>
+      <div class="session-label">Подход <span id="curSet">1</span>/<span id="totalSets">3</span></div>
+      <div class="sets-dots" id="setsDots"></div>
+    </div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="90"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="90"></circle>
+      </svg>
+      <div class="ring-center">
+        <div class="phase-label" id="phaseLabel">Готовься</div>
+        <div class="timer-number" id="timerNumber">3</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="reps-dots" id="repsDots"></div>
+      <div class="session-controls" style="margin-top:18px;">
+        <button class="btn-secondary" id="pauseBtn">Пауза</button>
+        <button class="btn-secondary" id="skipBtn">Дальше</button>
+      </div>
+      <button class="btn-quit" id="quitBtn">Прервать тренировку</button>
+    </div>
+  </section>
+
+  <!-- DONE -->
+  <section id="done-screen" class="screen">
+    <div class="done-emoji">🎉</div>
+    <h1>Готово!</h1>
+    <div class="done-streak">Стрик: <b id="finalStreak">1</b> <span id="finalStreakWord">день</span> подряд</div>
+
+    <div class="done-next">
+      <div class="plan-title">Завтра</div>
+      <div class="plan-grid">
+        <div class="plan-cell"><div class="plan-num" id="nextSets">3</div><div class="plan-unit">подхода</div></div>
+        <div class="plan-div"></div>
+        <div class="plan-cell"><div class="plan-num" id="nextReps">5</div><div class="plan-unit">повторов</div></div>
+        <div class="plan-div"></div>
+        <div class="plan-cell"><div class="plan-num" id="nextHold">5</div><div class="plan-unit">сек держать</div></div>
+      </div>
+      <div class="done-max hidden" id="maxedNote">Максимальный уровень достигнут 💪</div>
+    </div>
+
+    <button class="btn-primary" id="homeFromDoneBtn" style="margin-top:26px; width:100%;">На главную</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings-screen" class="screen">
+    <div class="home-top">
+      <div class="eyebrow">Настройки</div>
+      <h1>Прогрессия</h1>
+    </div>
+
+    <div class="field"><div><label>Прибавка к удержанию</label><span class="hint">секунд в день, пока не достигнут потолок</span></div><input type="number" id="incInput" min="0" max="10"></div>
+    <div class="field"><div><label>Потолок удержания</label><span class="hint">после — растут повторы</span></div><input type="number" id="maxHoldInput" min="5" max="120"></div>
+    <div class="field"><div><label>Потолок повторов</label><span class="hint">после — растут подходы</span></div><input type="number" id="maxRepsInput" min="1" max="50"></div>
+    <div class="field"><div><label>Потолок подходов</label></div><input type="number" id="maxSetsInput" min="1" max="20"></div>
+    <div class="field"><div><label>Опускание головы</label><span class="hint">секунд перед подъёмом</span></div><input type="number" id="lowerInput" min="0" max="60"></div>
+    <div class="field"><div><label>Подъём головы</label><span class="hint">секунд перед удержанием</span></div><input type="number" id="raiseInput" min="0" max="60"></div>
+    <div class="field"><div><label>Отдых между подходами</label><span class="hint">секунд</span></div><input type="number" id="restSetInput" min="0" max="300"></div>
+    <div class="field"><div><label>Подготовка перед стартом</label><span class="hint">секунд</span></div><input type="number" id="readyInput" min="0" max="30"></div>
+
+    <div class="settings-actions">
+      <button class="btn-primary" id="saveSettingsBtn">Сохранить</button>
+      <button class="btn-danger" id="resetProgressBtn">Сбросить весь прогресс</button>
+      <button class="btn-ghost" id="backSettingsBtn">Назад</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  window.addEventListener("error", function(e){
+    try {
+      var el = document.createElement("div");
+      el.style.position = "fixed";
+      el.style.top = "0"; el.style.left = "0"; el.style.right = "0";
+      el.style.background = "#3a2622"; el.style.color = "#ff5a36";
+      el.style.padding = "10px 14px"; el.style.fontSize = "12px";
+      el.style.fontFamily = "monospace"; el.style.zIndex = "99999";
+      el.style.wordBreak = "break-word";
+      el.textContent = "Ошибка: " + e.message + " (строка " + e.lineno + ")";
+      document.body.appendChild(el);
+    } catch(err){}
+  });
+
+  var STORAGE_KEY = "neckcurls_v1";
+  var R = 90, CIRC = 2 * Math.PI * R;
+
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function dateStr(d){ return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+  function todayStr(){ return dateStr(new Date()); }
+  function yesterdayStr(){ var d = new Date(); d.setDate(d.getDate()-1); return dateStr(d); }
+  function daysWord(n){
+    var a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return "дней";
+    if (b > 1 && b < 5) return "дня";
+    if (b === 1) return "день";
+    return "дней";
+  }
+
+  function defaultState(){
+    return {
+      streak: 0,
+      lastCompletedDate: null,
+      hold: 7, sets: 3, reps: 10,
+      lowerSec: 5, raiseSec: 5, restSet: 30, ready: 3,
+      increment: 1, maxHold: 30, maxReps: 20, maxSets: 5
+    };
+  }
+  function loadState(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed);
+    } catch(e){ return defaultState(); }
+  }
+  function saveState(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+  }
+
+  var state = loadState();
+
+  // ---------- screen switching ----------
+  var screens = ["home-screen","session-screen","done-screen","settings-screen"];
+  function showScreen(id){
+    screens.forEach(function(s){
+      document.getElementById(s).classList.toggle("active", s === id);
+    });
+  }
+
+  // ---------- HOME ----------
+  var streakCount = document.getElementById("streakCount");
+  var streakLabel = document.getElementById("streakLabel");
+  var planSets = document.getElementById("planSets");
+  var planReps = document.getElementById("planReps");
+  var planHold = document.getElementById("planHold");
+  var doneBanner = document.getElementById("doneBanner");
+  var startBtn = document.getElementById("startBtn");
+
+  function renderHome(){
+    streakCount.textContent = state.streak;
+    streakLabel.textContent = daysWord(state.streak) + " подряд";
+    planSets.textContent = state.sets;
+    planReps.textContent = state.reps;
+    planHold.textContent = state.hold;
+    var doneToday = state.lastCompletedDate === todayStr();
+    doneBanner.classList.toggle("hidden", !doneToday);
+    startBtn.textContent = doneToday ? "Повторить ещё раз" : "Начать";
+  }
+
+  startBtn.addEventListener("click", function(){ startSession(); });
+  document.getElementById("settingsBtnHome").addEventListener("click", function(){ openSettings(); });
+
+  // ---------- SESSION ----------
+  var curSetEl = document.getElementById("curSet");
+  var totalSetsEl = document.getElementById("totalSets");
+  var setsDotsEl = document.getElementById("setsDots");
+  var repsDotsEl = document.getElementById("repsDots");
+  var phaseLabelEl = document.getElementById("phaseLabel");
+  var timerNumberEl = document.getElementById("timerNumber");
+  var ringProgress = document.getElementById("ringProgress");
+  var pauseBtn = document.getElementById("pauseBtn");
+  var skipBtn = document.getElementById("skipBtn");
+  var quitBtn = document.getElementById("quitBtn");
+
+  ringProgress.setAttribute("stroke-dasharray", CIRC.toFixed(2));
+
+  var session = null; // {phase, remaining, total, curSet, curRep, timerId, paused}
+
+  var PHASE_LABELS = {
+    ready: "Готовься",
+    lower: "Опусти голову",
+    raise: "Подними голову",
+    hold: "Держи",
+    restSet: "Отдых между подходами"
+  };
+  var PHASE_COLORS = { ready: "#ffb100", lower: "#2fe6b8", raise: "#ffb100", hold: "#ff5a36", restSet: "#2fe6b8" };
+
+  function buildDots(container, count, filledCount, size){
+    container.innerHTML = "";
+    for (var i = 0; i < count; i++){
+      var d = document.createElement("div");
+      d.className = "dot" + (i < filledCount ? " filled" : "");
+      container.appendChild(d);
+    }
+  }
+
+  function renderSession(){
+    curSetEl.textContent = session.curSet;
+    totalSetsEl.textContent = state.sets;
+    buildDots(setsDotsEl, state.sets, session.curSet - 1, 8);
+    buildDots(repsDotsEl, state.reps, session.curRep - 1, 11);
+
+    phaseLabelEl.textContent = PHASE_LABELS[session.phase];
+    timerNumberEl.textContent = Math.max(session.remaining, 0);
+
+    var color = PHASE_COLORS[session.phase];
+    ringProgress.style.stroke = color;
+    var frac = session.total > 0 ? (session.remaining / session.total) : 0;
+    var offset = CIRC * (1 - frac);
+    ringProgress.setAttribute("stroke-dashoffset", offset.toFixed(2));
+
+    pauseBtn.textContent = session.paused ? "Продолжить" : "Пауза";
+  }
+
+  function clearTimer(){
+    if (session && session.timerId){ clearInterval(session.timerId); session.timerId = null; }
+  }
+
+  function tickTimer(){
+    session.timerId = setInterval(function(){
+      if (session.paused) return;
+      session.remaining--;
+      if (session.remaining <= 0){
+        advancePhase();
+      } else {
+        renderSession();
+      }
+    }, 1000);
+  }
+
+  function setPhase(phase, seconds){
+    session.phase = phase;
+    session.total = seconds;
+    session.remaining = seconds;
+  }
+
+  function advancePhase(){
+    if (session.phase === "ready"){
+      setPhase("lower", state.lowerSec);
+    } else if (session.phase === "lower"){
+      setPhase("raise", state.raiseSec);
+    } else if (session.phase === "raise"){
+      setPhase("hold", state.hold);
+    } else if (session.phase === "hold"){
+      if (session.curRep < state.reps){
+        session.curRep++;
+        setPhase("lower", state.lowerSec);
+      } else if (session.curSet < state.sets){
+        setPhase("restSet", state.restSet);
+      } else {
+        finishSession();
+        return;
+      }
+    } else if (session.phase === "restSet"){
+      session.curSet++;
+      session.curRep = 1;
+      setPhase("lower", state.lowerSec);
+    }
+    renderSession();
+  }
+
+  function startSession(){
+    clearTimer();
+    session = { phase: null, remaining: 0, total: 0, curSet: 1, curRep: 1, timerId: null, paused: false };
+    setPhase("ready", state.ready > 0 ? state.ready : 1);
+    showScreen("session-screen");
+    renderSession();
+    tickTimer();
+  }
+
+  pauseBtn.addEventListener("click", function(){
+    session.paused = !session.paused;
+    renderSession();
+  });
+  skipBtn.addEventListener("click", function(){
+    advancePhase();
+  });
+  quitBtn.addEventListener("click", function(){
+    clearTimer();
+    session = null;
+    renderHome();
+    showScreen("home-screen");
+  });
+
+  // ---------- DONE / progression ----------
+  var finalStreak = document.getElementById("finalStreak");
+  var finalStreakWord = document.getElementById("finalStreakWord");
+  var nextSets = document.getElementById("nextSets");
+  var nextReps = document.getElementById("nextReps");
+  var nextHold = document.getElementById("nextHold");
+  var maxedNote = document.getElementById("maxedNote");
+
+  function applyDailyProgress(){
+    var today = todayStr();
+    if (state.lastCompletedDate !== today){
+      var yest = yesterdayStr();
+      state.streak = (state.lastCompletedDate === yest) ? state.streak + 1 : 1;
+      state.lastCompletedDate = today;
+
+      if (state.hold < state.maxHold){
+        state.hold = Math.min(state.maxHold, state.hold + state.increment);
+      } else if (state.reps < state.maxReps){
+        state.reps += 1;
+      } else if (state.sets < state.maxSets){
+        state.sets += 1;
+      }
+      saveState();
+    }
+  }
+
+  function finishSession(){
+    clearTimer();
+    applyDailyProgress();
+    session = null;
+
+    finalStreak.textContent = state.streak;
+    finalStreakWord.textContent = daysWord(state.streak);
+    nextSets.textContent = state.sets;
+    nextReps.textContent = state.reps;
+    nextHold.textContent = state.hold;
+
+    var maxed = state.hold >= state.maxHold && state.reps >= state.maxReps && state.sets >= state.maxSets;
+    maxedNote.classList.toggle("hidden", !maxed);
+
+    showScreen("done-screen");
+  }
+
+  document.getElementById("homeFromDoneBtn").addEventListener("click", function(){
+    renderHome();
+    showScreen("home-screen");
+  });
+
+  // ---------- SETTINGS ----------
+  var incInput = document.getElementById("incInput");
+  var maxHoldInput = document.getElementById("maxHoldInput");
+  var maxRepsInput = document.getElementById("maxRepsInput");
+  var maxSetsInput = document.getElementById("maxSetsInput");
+  var lowerInput = document.getElementById("lowerInput");
+  var raiseInput = document.getElementById("raiseInput");
+  var restSetInput = document.getElementById("restSetInput");
+  var readyInput = document.getElementById("readyInput");
+
+  function openSettings(){
+    incInput.value = state.increment;
+    maxHoldInput.value = state.maxHold;
+    maxRepsInput.value = state.maxReps;
+    maxSetsInput.value = state.maxSets;
+    lowerInput.value = state.lowerSec;
+    raiseInput.value = state.raiseSec;
+    restSetInput.value = state.restSet;
+    readyInput.value = state.ready;
+    showScreen("settings-screen");
+  }
+
+  function clampInt(v, min, max, fallback){
+    var n = parseInt(v, 10);
+    if (isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  document.getElementById("saveSettingsBtn").addEventListener("click", function(){
+    state.increment = clampInt(incInput.value, 0, 10, state.increment);
+    state.maxHold = clampInt(maxHoldInput.value, 5, 120, state.maxHold);
+    state.maxReps = clampInt(maxRepsInput.value, 1, 50, state.maxReps);
+    state.maxSets = clampInt(maxSetsInput.value, 1, 20, state.maxSets);
+    state.lowerSec = clampInt(lowerInput.value, 0, 60, state.lowerSec);
+    state.raiseSec = clampInt(raiseInput.value, 0, 60, state.raiseSec);
+    state.restSet = clampInt(restSetInput.value, 0, 300, state.restSet);
+    state.ready = clampInt(readyInput.value, 0, 30, state.ready);
+    // keep current values inside new caps
+    state.hold = Math.min(state.hold, state.maxHold);
+    state.reps = Math.min(state.reps, state.maxReps);
+    state.sets = Math.min(state.sets, state.maxSets);
+    saveState();
+    renderHome();
+    showScreen("home-screen");
+  });
+
+  document.getElementById("resetProgressBtn").addEventListener("click", function(){
+    if (window.confirm("Сбросить стрик и весь прогресс? Это нельзя отменить.")){
+      state = defaultState();
+      saveState();
+      renderHome();
+      showScreen("home-screen");
+    }
+  });
+
+  document.getElementById("backSettingsBtn").addEventListener("click", function(){
+    renderHome();
+    showScreen("home-screen");
+  });
+
+  // ---------- init ----------
+  renderHome();
+  showScreen("home-screen");
+})();
+</script>
+</body>
+</html>
